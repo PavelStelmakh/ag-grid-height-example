@@ -84,7 +84,7 @@ export const Example2 = () => {
           rowDragManaged
           suppressRowClickSelection
           masterDetail={ true }
-          detailRowAutoHeight={ true }
+          // detailRowAutoHeight={ true }
           detailCellRendererParams={ detailCellRendererParams }
           className={ className }
           getRowHeight={ getRowHeight }
