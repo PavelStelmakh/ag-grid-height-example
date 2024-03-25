@@ -3,20 +3,19 @@ import { AgGridReact } from 'ag-grid-react';
 import { defaultColDef, gridOptions } from './grid-settings';
 import { columnDefs } from './default-column-defs';
 import { rowData } from './rows-data';
+import { getDetailCellRendererParams } from './details-cell-renderer-params';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
+const sizes = [40, 30, 20];
+
 export const DataGrid = () => {
   const gridRef = useRef();
+  const heightRef = useRef();
+  const [rowHeight, setRowHeight] = useState(40);
 
-  const sizeMap = {
-    lg: 40,
-    md: 30,
-    sm: 20
-  };
-
-  const [size, setSize] = useState('lg');
+  heightRef.current = rowHeight;
 
   const toggleFirstRow = () => {
     const row = gridRef.current.api.getDisplayedRowAtIndex(0);
@@ -25,72 +24,80 @@ export const DataGrid = () => {
   };
 
   const handleSetNextSize = () => {
-    const ss = Object.keys(sizeMap);
-    const index = ss.findIndex((s) => s === size);
+    const index = sizes.findIndex((size) => size === rowHeight);
   
-    setSize(ss[(index + 1) % ss.length]);
+    setRowHeight(sizes[(index + 1) % sizes.length]);
   };
 
-  const detailCellRendererParams = useMemo(() => {
-    return {
-      detailGridOptions: {
-        gridOptions,
-        enableRangeSelection: true,
-        enableFillHandle: true,
-        enableCellChangeFlash: true,
-        suppressClearOnFillReduction: true,
-        checkboxSelection: true,
-        rowDragManaged: true,
-        suppressRowClickSelection: true,
-        className: 'ag-theme-alpine',
-        rowSelection: 'multiple',
-        columnDefs,
-        defaultColDef: {
-          ...defaultColDef,
-          flex: 1,
-        },
-      },
-      getDetailRowData: (params) => {
-        params.successCallback(rowData);
-      },
-    };
-  }, []);
+  const getRowHeight = useCallback((params) => {
+    // const isDetailRow = params.node.detail;
 
-  const getRowHeight = useCallback(() => sizeMap[size], [ size ]);
+    // if (!isDetailRow) { return rowHeight; }
+
+    // const detailPanelHeight = params.data.children.length * rowHeight;
+
+    // return detailPanelHeight;
+    if (params.node && params.node.detail) {
+      var offset = 80;
+      var allDetailRowHeight =
+        rowData.length *
+        rowHeight;
+      var gridSizes = params.api.getSizesForCurrentTheme();
+      return (
+        allDetailRowHeight +
+        ((gridSizes && gridSizes.headerHeight) || 0) +
+        offset
+      );
+    }
+
+    return rowHeight;
+  }, [ rowHeight ]);
+
+  const detailCellRendererParams = useMemo(
+    () => getDetailCellRendererParams(heightRef),
+    []
+  );
 
   useEffect(() => {
     gridRef.current?.api?.resetRowHeights();
-  }, [ size ]);
+    gridRef.current?.api?.detailGridInfoMap?.detail_8?.api?.setGetRowHeight(getRowHeight)
+    gridRef.current?.api?.detailGridInfoMap?.detail_8?.api?.resetRowHeights()
+    // console.log(gridRef.current?.api);
+    // console.log(gridRef.current?.api?.detailGridInfoMap?.detail_8?.api);
+  }, [ rowHeight ]);
 
-  const className = `ag-theme-alpine grid--${ size }`;
+  // const className = `ag-theme-alpine data-grid--${ rowHeight }`
+  const className = `ag-theme-alpine`
 
   return (
     <>
-      <div style={{ height: 1400 }}>
-      <div style={{ height: '100%' }}>
-        <div>
-          <button onClick={ toggleFirstRow }>Toggle Row 1</button>
-          <button onClick={ handleSetNextSize }>Change Size</button>
-        </div>
-        <AgGridReact ref={ gridRef }
-            gridOptions={ gridOptions }
-            enableRangeSelection
-            enableFillHandle
-            enableCellChangeFlash
-            suppressClearOnFillReduction
-            checkboxSelection
-            rowDragManaged
-            suppressRowClickSelection
-            masterDetail={ true }
-            detailRowAutoHeight={ true }
-            detailCellRendererParams={ detailCellRendererParams }
-            className={ className }
-            getRowHeight={ getRowHeight }
-            rowSelection="multiple"
-            columnDefs={ columnDefs }
-            defaultColDef={ defaultColDef }
-            rowData={ rowData }
-            popupParent={ document.body } />
+      <div style={{ height: 470 }}>
+        <div style={{ height: '100%' }}>
+          <div>
+            <button onClick={ toggleFirstRow }>Toggle Row 1</button>
+            <button onClick={ handleSetNextSize }>Change Size</button>
+          </div>
+          <AgGridReact ref={ gridRef }
+              gridOptions={ gridOptions }
+              enableRangeSelection
+              enableFillHandle
+              enableCellChangeFlash
+              suppressClearOnFillReduction
+              checkboxSelection
+              rowDragManaged
+              suppressRowClickSelection
+              masterDetail={ true }
+              // detailRowAutoHeight={ true }
+              detailRowHeight={ rowHeight }
+              detailCellRendererParams={ detailCellRendererParams }
+              className={ className }
+              getRowHeight={ getRowHeight }
+              // rowHeight={ rowHeight }
+              rowSelection="multiple"
+              columnDefs={ columnDefs }
+              defaultColDef={ defaultColDef }
+              rowData={ rowData }
+              popupParent={ document.body } />
         </div>
       </div>
     </>
